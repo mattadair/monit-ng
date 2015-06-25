@@ -27,16 +27,24 @@ class Chef
 
       private
 
+      # rubocop: disable MethodLength
+      # rubocop: disable AbcSize
       def edit_check(exec_action)
         t = Chef::Resource::Template.new(tpl_name, run_context)
         t.cookbook new_resource.cookbook
         t.path tpl_path
         t.source 'monit.check.erb'
         t.variables monit_check_config
-        t.notifies :reload, 'service[monit]', :delayed
+        if Chef::VERSION.to_f >= 12
+          t.verify do |path|
+            "monit -tc #{path}"
+          end
+        end
         t.run_action exec_action
         t.updated_by_last_action?
       end
+      # rubocop: enable MethodLength
+      # rubocop: enable AbcSize
 
       def tpl_name
         "monit_check_#{new_resource.name}"
@@ -46,6 +54,7 @@ class Chef
         ::File.join(node['monit']['conf_dir'], "#{new_resource.name}.conf")
       end
 
+      # rubocop: disable MethodLength
       # rubocop: disable AbcSize
       def monit_check_config
         {
@@ -56,9 +65,12 @@ class Chef
           :start => new_resource.start, :stop => new_resource.stop,
           :stop_as => new_resource.stop_as,
           :stop_as_group => new_resource.stop_as_group,
-          :every => new_resource.every, :tests => new_resource.tests
+          :every => new_resource.every, :tests => new_resource.tests,
+          :alert => new_resource.alert, :but_not_on => new_resource.but_not_on,
+          :alert_events => new_resource.alert_events
         }
       end
+      # rubocop: enable MethodLength
       # rubocop: enable AbcSize
     end
   end
